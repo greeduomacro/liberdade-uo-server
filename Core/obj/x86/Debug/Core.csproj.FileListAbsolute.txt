@@ -1,0 +1,8 @@
+F:\LiberdadeUO Server\Shard\LiberdadeUO Server.exe
+F:\LiberdadeUO Server\Shard\LiberdadeUO Server.pdb
+F:\LiberdadeUO Server\Core\obj\x86\Debug\LiberdadeUO Server.exe
+F:\LiberdadeUO Server\Core\obj\x86\Debug\LiberdadeUO Server.pdb
+F:\LiberdadeUO\Core\obj\x86\Debug\LiberdadeUO Server.exe
+F:\LiberdadeUO\Shard\LiberdadeUO Server.exe
+F:\LiberdadeUO\Shard\LiberdadeUO Server.pdb
+F:\LiberdadeUO\Core\obj\x86\Debug\LiberdadeUO Server.pdb

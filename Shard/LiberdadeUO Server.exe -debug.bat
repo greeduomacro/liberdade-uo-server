@@ -1,0 +1,1 @@
+"LiberdadeUO Server.exe" -debug
