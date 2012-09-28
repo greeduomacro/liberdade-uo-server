@@ -228,7 +228,9 @@ namespace Server.Network
 			m_Stream.Write( (short) item.Amount );
 			m_Stream.Write( (short) item.X );
 			m_Stream.Write( (short) item.Y );
-			m_Stream.Write( (byte) 0 ); // Grid Location?
+            // UOSA: suporte ao uo:kr
+            m_Stream.Write((byte)Container.GetGridLocationItemForContainer(item)); // Grid Location
+
 			m_Stream.Write( (int) m.Serial );
 			m_Stream.Write( (short) item.Hue );
 		}
@@ -444,7 +446,12 @@ namespace Server.Network
 			this.EnsureCapacity( 12 );
 
 			m_Stream.Write( (short) 0x19 );
-			m_Stream.Write( (byte) 2 );
+            // UOSA
+            if (m.NetState.IsKRClient)
+                m_Stream.Write((byte)5);
+            else
+                m_Stream.Write((byte)2);
+
 			m_Stream.Write( (int) m.Serial );
 			m_Stream.Write( (byte) 0 );
 
@@ -909,14 +916,27 @@ namespace Server.Network
 	{
 		public DisplayContextMenu( ContextMenu menu ) : base( 0xBF )
 		{
+            // UOSA: suporte ao UO:KR.
+            // Is KR Client?
+            bool isKRClient = menu.From.NetState.IsKRClient;
+
 			ContextMenuEntry[] entries = menu.Entries;
 
 			int length = (byte) entries.Length;
 
-			this.EnsureCapacity( 12 + (length * 8) );
+            // UOSA: suporte ao UO:KR.
+            if (isKRClient)
+                this.EnsureCapacity(12 + (length * 10));
+            else
+                this.EnsureCapacity(12 + (length * 8));
+
 
 			m_Stream.Write( (short) 0x14 );
-			m_Stream.Write( (short) 0x01 );
+            // UOSA: suporte ao UO:KR.
+            if (isKRClient)
+                m_Stream.Write((short)0x02);
+            else
+                m_Stream.Write((short)0x01);
 
 			IEntity target = menu.Target as IEntity;
 
@@ -937,8 +957,22 @@ namespace Server.Network
 			{
 				ContextMenuEntry e = entries[i];
 
-				m_Stream.Write( (short) i );
-				m_Stream.Write( (ushort) e.Number );
+                // UOSA: suporte ao UO:KR.
+                if (isKRClient)
+                {
+                    if (e.Number > 3000000)
+                        m_Stream.Write((uint)e.Number);
+                    else
+                        m_Stream.Write((uint)(3000000 + e.Number));
+
+                    m_Stream.Write((short)i);
+                }
+                else
+                {
+                    m_Stream.Write((short)i);
+                    m_Stream.Write((ushort)e.Number);
+                }
+
 
 				int range = e.Range;
 
@@ -3000,9 +3034,12 @@ namespace Server.Network
 			string name = m.Name;
 			if ( name == null ) name = "";
 
+
 			bool sendMLExtended = (Core.ML && ns != null && ns.SupportsExpansion( Expansion.ML ));
 
-			this.EnsureCapacity( sendMLExtended ? 91 : 88 );
+            #region UOSA: KR Support
+            this.EnsureCapacity((m.NetState != null && m.NetState.IsKRClient) ? 161 : (sendMLExtended ? 91 : 88));
+            #endregion 
 
 			m_Stream.Write( (int) m.Serial );
 			m_Stream.WriteAsciiFixed( name, 30 );
@@ -3012,7 +3049,9 @@ namespace Server.Network
 
 			m_Stream.Write( m.CanBeRenamedBy( m ) );
 
-			m_Stream.Write( (byte)(sendMLExtended ? 0x05 : Core.AOS ? 0x04 : 0x03) ); // type
+            #region UOSA: KR Support
+            m_Stream.Write((byte)((m.NetState != null && m.NetState.IsKRClient) ? 0x06 : (sendMLExtended ? 0x05 : Core.AOS ? 0x04 : 0x03))); // type 
+            #endregion
 
 			m_Stream.Write( m.Female );
 
@@ -3061,6 +3100,36 @@ namespace Server.Network
 
 				m_Stream.Write( (int) m.TithingPoints );
 			}
+
+            #region UOSA: KR Support
+            if (m.NetState != null && m.NetState.IsKRClient)
+            {
+                m_Stream.Write((short)m.AttackChance); // Hit Chance Increase
+                m_Stream.Write((short)m.WeaponSpeed); // Swing Speed Increase
+                m_Stream.Write((short)m.WeaponDamage); // Damage Increase
+                m_Stream.Write((short)m.LowerRegCost); // Lower Reagent Cost
+                m_Stream.Write((short)m.RegenHits); // Hit Points Regeneration
+                m_Stream.Write((short)m.RegenStam); // Stamina Regeneration
+                m_Stream.Write((short)m.RegenMana); // Mana Regeneration
+                m_Stream.Write((short)m.ReflectPhysical); // Reflect Physical Damage
+                m_Stream.Write((short)m.EnhancePotions); // Enhance Potions
+                m_Stream.Write((short)m.DefendChance); // Defense Chance Increase
+                m_Stream.Write((short)m.SpellDamage); // Spell Damage Increase
+                m_Stream.Write((short)m.CastRecovery); // Faster Cast Recovery
+                m_Stream.Write((short)m.CastSpeed); // Faster Casting
+                m_Stream.Write((short)m.LowerManaCost); // Lower Mana Cost
+                m_Stream.Write((short)m.BonusStr); // Strength Increase
+                m_Stream.Write((short)m.BonusDex); // Dexterity Increase
+                m_Stream.Write((short)m.BonusInt); // Intelligence Increase
+                m_Stream.Write((short)m.BonusHits); // Hit Points Increase
+                m_Stream.Write((short)m.BonusStam); // Stamina Increase
+                m_Stream.Write((short)m.BonusMana); // Mana Increase
+                m_Stream.Write((short)m.MaxHitIncrease); // Maximum Hit Points Increase
+                m_Stream.Write((short)m.MaxStamIncrease); // Maximum Stamina Increase
+                m_Stream.Write((short)m.MaxManaIncrease); // Maximum Mana Increase
+            }
+            #endregion
+
 		}
 	}
 
@@ -3261,6 +3330,12 @@ namespace Server.Network
 				count++;
 			if( beheld.FacialHairItemID > 0 )
 				count++;
+
+            #region UOSA: KR Support
+            if (beholder.NetState != null && beholder.NetState.IsKRClient && beheld.FaceItemID > 0)
+                count++;
+            #endregion KR Face
+
 
 			this.EnsureCapacity( 23 + (count * 9) );
 
@@ -3803,8 +3878,11 @@ namespace Server.Network
 
 	public sealed class CharacterList : Packet
 	{
-		public CharacterList( IAccount a, CityInfo[] info ) : base( 0xA9 )
-		{
+        // UOSA: suporte ao UO:KR.
+        public CharacterList(IAccount a, CityInfo[] info, bool IsKrClient)
+            : base(0xA9)
+        {
+
 			this.EnsureCapacity( 11 + (a.Length * 60) + (info.Length * 89) );
 
 			int highSlot = -1;
@@ -3857,6 +3935,11 @@ namespace Server.Network
 				flags |= CharacterListFlags.SixthCharacterSlot; // 6th Character Slot
 			else if ( a.Limit == 1 )
 				flags |= (CharacterListFlags.SlotLimit & CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
+
+            // Genova: suporte ao UO:KR.			
+            // Is KR Client
+            if (IsKrClient)
+                flags |= CharacterListFlags.KR;	// Still dont know. KR Flags.	
 
 			m_Stream.Write( (int)(flags | m_AdditionalFlags) ); // Additional Flags
 		}
@@ -4127,6 +4210,118 @@ namespace Server.Network
 			m_Stream.Write( (int) m_AuthID );
 		}
 	}
+
+    // UOSA: suporte ao UO:KR.
+    #region Suporte ao UO:KR
+    // KR Verifier Packet (Still didnt research on it. Just replying)
+    public sealed class KRVerifier : Packet
+    {
+        public static readonly Packet Instance = Packet.SetStatic(new KRVerifier());
+
+        public KRVerifier()
+            : base(0xE3, 77)
+        {
+            // First 2 - Size
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x4D);
+
+            // Next ones... I have no idea from now on
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x03);
+            m_Stream.Write((byte)0x02);
+            m_Stream.Write((byte)0x01);
+            m_Stream.Write((byte)0x03);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x13);
+            m_Stream.Write((byte)0x02);
+            m_Stream.Write((byte)0x11);
+
+            // Next 16
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0xFC);
+            m_Stream.Write((byte)0x2F);
+            m_Stream.Write((byte)0xE3);
+            m_Stream.Write((byte)0x81);
+            m_Stream.Write((byte)0x93);
+            m_Stream.Write((byte)0xCB);
+            m_Stream.Write((byte)0xAF);
+            m_Stream.Write((byte)0x98);
+            m_Stream.Write((byte)0xDD);
+            m_Stream.Write((byte)0x83);
+            m_Stream.Write((byte)0x13);
+            m_Stream.Write((byte)0xD2);
+            m_Stream.Write((byte)0x9E);
+            m_Stream.Write((byte)0xEA);
+            m_Stream.Write((byte)0xE4);
+
+            // Next 16
+            m_Stream.Write((byte)0x13);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x10);
+            m_Stream.Write((byte)0x78);
+            m_Stream.Write((byte)0x13);
+            m_Stream.Write((byte)0xB7);
+            m_Stream.Write((byte)0x7B);
+            m_Stream.Write((byte)0xCE);
+            m_Stream.Write((byte)0xA8);
+            m_Stream.Write((byte)0xD7);
+            m_Stream.Write((byte)0xBC);
+            m_Stream.Write((byte)0x52);
+            m_Stream.Write((byte)0xDE);
+            m_Stream.Write((byte)0x38);
+
+            // Next 16
+            m_Stream.Write((byte)0x30);
+            m_Stream.Write((byte)0xEA);
+            m_Stream.Write((byte)0xE9);
+            m_Stream.Write((byte)0x1E);
+            m_Stream.Write((byte)0xA3);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x20);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x00);
+            m_Stream.Write((byte)0x10);
+            m_Stream.Write((byte)0x5A);
+            m_Stream.Write((byte)0xCE);
+            m_Stream.Write((byte)0x3E);
+
+            // Next 13
+            m_Stream.Write((byte)0xE3);
+            m_Stream.Write((byte)0x97);
+            m_Stream.Write((byte)0x92);
+            m_Stream.Write((byte)0xE4);
+            m_Stream.Write((byte)0x8A);
+            m_Stream.Write((byte)0xF1);
+            m_Stream.Write((byte)0x9A);
+            m_Stream.Write((byte)0xD3);
+            m_Stream.Write((byte)0x04);
+            m_Stream.Write((byte)0x41);
+            m_Stream.Write((byte)0x03);
+            m_Stream.Write((byte)0xCB);
+            m_Stream.Write((byte)0x53);
+        }
+    }
+
+    public sealed class KRDropConfirm : Packet
+    {
+        public static readonly Packet Instance = Packet.SetStatic(new KRDropConfirm());
+
+        public KRDropConfirm()
+            : base(0x29, 1)
+        {
+        }
+    }
+    #endregion
+
 
 	public abstract class Packet
 	{

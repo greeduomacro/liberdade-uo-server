@@ -72,6 +72,21 @@ namespace Server.Network {
 		private ClientVersion m_Version;
 		private bool m_SentFirstPacket;
 		private bool m_BlockAllPackets;
+        // UOSA: suporte ao UO:KR.
+        private bool m_KRClient;
+
+        // UOSA: suporte ao UO:KR.
+        public bool IsKRClient
+        {
+            get
+            {
+                return m_KRClient;
+            }
+            set
+            {
+                m_KRClient = value;
+            }
+        }
 
 		private DateTime m_ConnectedOn;
 
@@ -1205,9 +1220,9 @@ namespace Server.Network {
 		public bool SupportsExpansion( ExpansionInfo info, bool checkCoreExpansion ) {
 			if ( info == null || ( checkCoreExpansion && ( int ) Core.Expansion < info.ID ) )
 				return false;
-
+            //UOSA
 			if ( info.RequiredClient != null )
-				return ( this.Version >= info.RequiredClient );
+                return ( this.IsKRClient || this.Version >= info.RequiredClient);
 
 			return ( ( this.Flags & info.ClientFlags ) != 0 );
 		}

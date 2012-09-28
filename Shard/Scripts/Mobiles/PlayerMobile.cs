@@ -2120,6 +2120,8 @@ namespace Server.Mobiles
 				if ( !EquipItem( deathRobe ) )
 					deathRobe.Delete();
 			}
+
+
 		}
 
 		public override double RacialSkillBonus

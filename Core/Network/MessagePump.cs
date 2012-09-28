@@ -152,46 +152,72 @@ namespace Server.Network
 
 				if ( !ns.Seeded )
 				{
-					if ( buffer.GetPacketID() == 0xEF )
-					{
-						// new packet in client	6.0.5.0	replaces the traditional seed method with a	seed packet
-						// 0xEF	= 239 =	multicast IP, so this should never appear in a normal seed.	 So	this is	backwards compatible with older	clients.
-						ns.Seeded =	true;
-					}
-					else if ( buffer.Length >= 4 )
-					{
-						buffer.Dequeue( m_Peek, 0, 4 );
+                    /*  
+                     * UOSA: Packet Logger
+                    Console.WriteLine("packet vindo de buffer: {0}", buffer.GetPacketID());
+                    Console.WriteLine("Tamanho do buffer: {0}", length);
+                    */
 
-						int seed = (m_Peek[0] << 24) | (m_Peek[1] << 16) | (m_Peek[2] << 8) | m_Peek[3];
+                    // UOSA: suporte ao UO:KR.                    
+                    if (buffer.GetPacketID() == 0xFF)
+                    {
+                        // Packet 255 = 0xFF = Client KR.
+                        ns.IsKRClient = true;
+                    }
+                    else if (buffer.GetPacketID() == 0xEF)
+                    {
+                        // new packet in client 6.0.5.0 replaces the traditional seed method with a seed packet
+                        // 0xEF = 239 = multicast IP, so this should never appear in a normal seed.  So this is backwards compatible with older clients.
+                        ns.Seeded = true;
+                    }
+                    else if (buffer.Length >= 4)
+                    {
+                        // UOSA: suporte ao UO:KR.
+                        // Se for KR, isso vai continuar como -1 temporariamente
+                        int seed = -1;
 
-						if ( seed == 0 )
-						{
-							Console.WriteLine( "Login: {0}: Invalid client detected, disconnecting", ns );
-							ns.Dispose();
-							return false;
-						}
+                        /*
+                         * UOSA: Logger
+                        Console.WriteLine("KR Client in messagePump: {0}", ns.IsKRClient);
+                        */
 
-						ns.m_Seed = seed;
-						ns.Seeded = true;
+                        if (!ns.IsKRClient)
+                        {
+                            buffer.Dequeue(m_Peek, 0, 4);
 
-						length = buffer.Length;
-					}
-					else
-					{
-						return true;
-					}
+                            seed = (m_Peek[0] << 24) | (m_Peek[1] << 16) | (m_Peek[2] << 8) | m_Peek[3];
+
+                            if (seed == 0)
+                            {
+                                Console.WriteLine("Login: {0}: Invalid client detected, disconnecting", ns);
+                                ns.Dispose();
+                                return false;
+                            }
+                        }
+
+                        ns.m_Seed = seed;
+                        ns.Seeded = true;
+
+                        length = buffer.Length;
+                    }
+                    else
+                    {
+                        return true;
+                    }
 				}
 
 				while ( length > 0 && ns.Running )
 				{
 					int packetID = buffer.GetPacketID();
 
-					if ( !ns.SentFirstPacket && packetID != 0xF0 && packetID != 0xF1 && packetID != 0xCF && packetID != 0x80 && packetID != 0x91 && packetID != 0xA4 && packetID != 0xEF )
-					{
-						Console.WriteLine( "Client: {0}: Encrypted client detected, disconnecting", ns );
-						ns.Dispose();
-						break;
-					}
+                    // UOSA: suporte ao UO:KR.
+                    // Adicionado mais duas verificações: packetID != 0xE4 && packetID != 0xFF.
+                    if (!ns.SentFirstPacket && packetID != 0xF0 && packetID != 0xF1 && packetID != 0xCF && packetID != 0x80 && packetID != 0x91 && packetID != 0xA4 && packetID != 0xEF && packetID != 0xE4 && packetID != 0xFF)
+                    {
+                        Console.WriteLine("Client: {0}: Encrypted client detected, disconnecting", ns);
+                        ns.Dispose();
+                        break;
+                    }
 
 					PacketHandler handler = ns.GetHandler( packetID );
 

@@ -3063,7 +3063,7 @@ namespace Server
 							{
 								if ( rootParent.CanSee( this ) && rootParent.InRange( worldLoc, GetUpdateRange( rootParent ) ) )
 								{
-									if ( ns.ContainerGridLines )
+									if ( ns.ContainerGridLines | ns.IsKRClient )
 										ns.Send( new ContainerContentUpdate6017( this ) );
 									else
 										ns.Send( new ContainerContentUpdate( this ) );
@@ -3100,7 +3100,7 @@ namespace Server
 									{
 										if ( tradeRecip.CanSee( this ) && tradeRecip.InRange( worldLoc, GetUpdateRange( tradeRecip ) ) )
 										{
-											if ( ns.ContainerGridLines )
+                                            if (ns.ContainerGridLines | ns.IsKRClient)
 												ns.Send( new ContainerContentUpdate6017( this ) );
 											else
 												ns.Send( new ContainerContentUpdate( this ) );
@@ -3138,7 +3138,7 @@ namespace Server
 									{
 										if ( mob.CanSee( this ) )
 										{
-											if ( ns.ContainerGridLines )
+											if ( ns.ContainerGridLines | ns.IsKRClient)
 												ns.Send( new ContainerContentUpdate6017( this ) );
 											else
 												ns.Send( new ContainerContentUpdate( this ) );
@@ -3173,7 +3173,7 @@ namespace Server
 							} else {
 								if ( p == null ) {
 									if ( m_Parent is Item ) {
-										if ( state.ContainerGridLines )
+                                        if (state.ContainerGridLines | state.IsKRClient)
 											state.Send( new ContainerContentUpdate6017( this ) );
 										else
 											state.Send( new ContainerContentUpdate( this ) );
@@ -3749,6 +3749,23 @@ namespace Server
 				}
 			}
 		}
+
+        // genova: support uo:kr
+        #region Support uo:kr
+
+        private int m_GridLocation;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int GridLocation
+        {
+            get { return m_GridLocation; }
+            set
+            {
+                if (value >= 0 && value < 126)
+                    m_GridLocation = value;
+            }
+        }
+
+        #endregion
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public int Amount

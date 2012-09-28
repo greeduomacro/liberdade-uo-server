@@ -376,6 +376,11 @@ namespace Server.Gumps
 
 			if ( ns != null && ns.Unpack )
 				disp = new DisplayGumpPacked( this );
+            // UOSA: suporte ao KR
+            #region Suporte ao KR
+            else if (ns != null && ns.IsKRClient)
+                disp = new DisplayGumpPacked(this);
+            #endregion
 			else
 				disp = new DisplayGumpFast( this );
 

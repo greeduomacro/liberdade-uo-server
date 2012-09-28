@@ -153,8 +153,6 @@ namespace Server.Network
 
             #region UOSA: Support
             Register( 0x8D, 0, false, new OnPacketReceive( CreateCharacter3D ));
-            //UOSA a implementar
-            //Register( 0xE3, 0, false, new OnPacketReceive( EncryptionRequest3D ));
             Register( 0xE4, 0, false, new OnPacketReceive( EncryptionResponse3D ));
             Register( 0xE5, 0, false, new OnPacketReceive( DisplayWaipoint3D ));
             Register( 0xE6, 0, false, new OnPacketReceive( HideWaypoint3D ));
@@ -990,6 +988,11 @@ namespace Server.Network
 		public static void EquipReq( NetState state, PacketReader pvSrc )
 		{
 			Mobile from = state.Mobile;
+
+            // UOSA: support uo:kr
+            if (from.NetState != null && from.NetState.IsKRClient)
+                from.NetState.Send(new KRDropConfirm());
+
 			Item item = from.Holding;
 
 			bool valid = ( item != null && item.HeldBy == from && item.Map == Map.Internal );
@@ -1018,6 +1021,12 @@ namespace Server.Network
 			int x = pvSrc.ReadInt16();
 			int y = pvSrc.ReadInt16();
 			int z = pvSrc.ReadSByte();
+
+            // UOSA: suporte uo:kr.
+            byte gridIndex = byte.MinValue;
+            if (state.IsKRClient)
+                gridIndex = pvSrc.ReadByte(); // Grid Location
+
 			Serial dest = pvSrc.ReadInt32();
 
 			Point3D loc = new Point3D( x, y, z );
@@ -1922,7 +1931,8 @@ namespace Server.Network
 			{
 				if ( m_State == null )
 					Stop();
-				if ( m_State.Version != null )
+                // UOSA: support uo:kr (correct login)
+                if (m_State.Version != null || m_State.IsKRClient)
 				{
 					m_State.BlockAllPackets = false;
 					DoLogin( m_State, m_Mobile );
@@ -2314,8 +2324,8 @@ namespace Server.Network
         public static void Seed3D(NetState state, PacketReader pvSrc)
         {
            //  KR Client detected (Maybe Legacy client after 6.0.1.4 too? Still need to check)
-           //  state.IsSAClient = true;
-           //  state.Send(new KRVerifier());
+           state.IsKRClient = true;
+           state.Send(new KRVerifier());
         }
 
         // UOSA
@@ -2672,6 +2682,7 @@ namespace Server.Network
 
 			int authID = pvSrc.ReadInt32();
 
+
 			if ( m_AuthIDWindow.ContainsKey( authID ) ) {
 				AuthIDPersistence ap = m_AuthIDWindow[authID];
 				m_AuthIDWindow.Remove( authID );
@@ -2711,7 +2722,7 @@ namespace Server.Network
 				state.Send( SupportedFeatures.Instantiate( state ) );
 
 				if ( state.NewCharacterList ) {
-					state.Send( new CharacterList( state.Account, state.CityInfo ) );
+					state.Send( new CharacterList( state.Account, state.CityInfo, state.IsKRClient ) );
 				} else {
 					state.Send( new CharacterListOld( state.Account, state.CityInfo ) );
 				}

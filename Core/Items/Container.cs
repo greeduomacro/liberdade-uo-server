@@ -1631,10 +1631,11 @@ namespace Server.Items
 				to.Send( new ContainerDisplayHS( this ) );
 			else
 				to.Send( new ContainerDisplay( this ) );
-			
-			if ( ns.ContainerGridLines )
+
+            // UOSA: suporte ao UO:KR.
+            if (ns.ContainerGridLines && to.NetState.IsKRClient)
 				to.Send( new ContainerContent6017( to, this ) );
-			else
+            else
 				to.Send( new ContainerContent( to, this ) );
 
 			if ( ObjectPropertyList.Enabled )
@@ -1720,6 +1721,38 @@ namespace Server.Items
 			else
 				from.SendLocalizedMessage( 500446 ); // That is too far away.
 		}
+
+        // UOSA: support uo:kr
+        #region Support UO:KR
+        public static int GetGridLocationItemForContainer(Item item)
+        {
+            if (item.Parent is Container)
+            {
+                Container container = item.Parent as Container;
+                List<Item> items = container.Items;
+
+                // Return his own position.
+                Item existItem = items.Find(delegate(Item itemList) { return itemList.Serial.Value.Equals(item.Serial.Value); });
+                if (existItem != null)
+                    return existItem.GridLocation;
+
+                // Return free position
+                int posEmpty = -1;
+                while (true)
+                {
+                    posEmpty++;
+                    if (items.FindAll(delegate(Item itemList)
+                    { return itemList.GridLocation.Equals(posEmpty); }
+                                     ).Count.Equals(0) || posEmpty > 126)
+                        break;
+                }
+
+                return posEmpty;
+            }
+
+            return item.GridLocation;
+        }
+        #endregion
 	}
 
 	public class ContainerData

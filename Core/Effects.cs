@@ -54,7 +54,9 @@ namespace Server
 
 		public static bool SendParticlesTo( NetState state )
 		{
-			return ( m_ParticleSupportType == ParticleSupportType.Full || (m_ParticleSupportType == ParticleSupportType.Detect && state.IsUOTDClient) );
+            #region UOSA: KR Support
+            return (m_ParticleSupportType == ParticleSupportType.Full || (m_ParticleSupportType == ParticleSupportType.Detect && (state.IsUOTDClient || state.IsKRClient)));
+            #endregion
 		}
 
 		public static void PlaySound( IPoint3D p, Map map, int soundID )

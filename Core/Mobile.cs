@@ -4433,7 +4433,7 @@ namespace Server
 
 				if( item.Parent is Item ) {
                     //UOSA
-					if ( state.ContainerGridLines )
+                    if (state.ContainerGridLines | state.IsKRClient)
 						state.Send( new ContainerContentUpdate6017( item ) );
 					else
 						state.Send( new ContainerContentUpdate( item ) );

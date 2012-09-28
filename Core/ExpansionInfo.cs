@@ -74,6 +74,7 @@ namespace Server
 		HS				= 0x00020000,
 		Gothic			= 0x00040000,
 		Rustic			= 0x00080000,
+        KR              = 0x600,
 
 		ExpansionNone		= None,
 		ExpansionT2A		= T2A,
@@ -104,6 +105,7 @@ namespace Server
 		Unk6			= 0x00000800,
 		SeventhCharacterSlot	= 0x00001000,
 		Unk7			= 0x00002000,
+        KR              = 0x600,
 
 		ExpansionNone		= ContextMenus, //
 		ExpansionT2A		= ContextMenus, //
